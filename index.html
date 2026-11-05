@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elm Street Nightmare Clock</title>
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <!-- Google Fonts: Creepster for Horror Titles & Share Tech Mono for Digital Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Share+Tech+Mono&family=Nosifer&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons for interface buttons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* Global Reset & Base Variables */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    :root {
+      --freddy-red: #7a0f0f;
+      --freddy-red-dark: #3a0000;
+      --freddy-green: #2d3b1e;
+      --freddy-green-dark: #121a0a;
+      --glow-red: #ff2222;
+      --glow-green: #78ab52;
+      --blade-metal: #a8b0b5;
+    }
+
+    body {
+      background-color: #050202;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Dark Grimy & Animated Atmospheric Background */
+    .bg-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 50% 50%, rgba(122, 15, 15, 0.25) 0%, rgba(5, 2, 2, 0.95) 80%),
+        repeating-linear-gradient(
+          -45deg,
+          var(--freddy-red-dark) 0px,
+          var(--freddy-red-dark) 40px,
+          var(--freddy-green-dark) 40px,
+          var(--freddy-green-dark) 80px
+        );
+      background-blend-mode: multiply;
+      opacity: 0.85;
+      z-index: 1;
+    }
+
+    /* CRT Scanline Effect */
+    .scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.4) 50%
+      );
+      background-size: 100% 4px;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Ambient Nightmare Flicker Filter */
+    .flicker-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 0, 0, 0.03);
+      z-index: 3;
+      pointer-events: none;
+      animation: ambientFlicker 0.15s infinite alternate;
+    }
+
+    @keyframes ambientFlicker {
+      0% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+      100% { opacity: 0.4; }
+    }
+
+    /* Blade Scratch Overlay Canvas */
+    #slash-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* Main Clock Wrapper - Freddy's Sweater Theme */
+    .clock-container {
+      position: relative;
+      z-index: 10;
+      width: 90%;
+      max-width: 650px;
+      padding: 35px 40px 45px 40px;
+      background: linear-gradient(
+        180deg,
+        var(--freddy-red) 0%, var(--freddy-red) 25%,
+        var(--freddy-green) 25%, var(--freddy-green) 50%,
+        var(--freddy-red) 50%, var(--freddy-red) 75%,
+        var(--freddy-green) 75%, var(--freddy-green) 100%
+      );
+      border: 6px solid #220505;
+      border-radius: 16px;
+      box-shadow: 
+        0 0 50px rgba(0, 0, 0, 0.9),
+        0 0 30px rgba(122, 15, 15, 0.6),
+        inset 0 0 25px #000;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .clock-container:active {
+      transform: scale(0.995);
+    }
+
+    /* Metallic Slash Texture overlaying the container */
+    .slash-mark {
+      position: absolute;
+      top: -15%;
+      left: -10%;
+      width: 120%;
+      height: 130%;
+      background: linear-gradient(
+        125deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.05) 43%,
+        rgba(200, 220, 230, 0.7) 46%,
+        rgba(255, 255, 255, 0.9) 47%,
+        var(--blade-metal) 48%,
+        transparent 50%
+      );
+      pointer-events: none;
+      opacity: 0.7;
+      filter: drop-shadow(0px 0px 4px rgba(0, 0, 0, 0.8));
+    }
+
+    .slash-mark-2 {
+      position: absolute;
+      top: -20%;
+      left: -5%;
+      width: 120%;
+      height: 140%;
+      background: linear-gradient(
+        118deg,
+        transparent 52%,
+        rgba(255, 255, 255, 0.8) 54%,
+        var(--blade-metal) 55%,
+        transparent 57%
+      );
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    /* Nightmare Title Header */
+    h1.horror-title {
+      font-family: 'Creepster', cursive;
+      color: #e61c1c;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+      text-shadow: 
+        3px 3px 0px #000, 
+        -1px -1px 0 #000,
+        0 0 15px var(--glow-red);
+      animation: textGlow 2s infinite alternate;
+    }
+
+    @keyframes textGlow {
+      0% { text-shadow: 3px 3px 0px #000, 0 0 10px var(--glow-red); }
+      100% { text-shadow: 3px 3px 0px #000, 0 0 25px var(--glow-red), 0 0 5px #fff; }
+    }
+
+    /* Embedded Digital Screen Frame */
+    .digital-frame {
+      background-color: rgba(8, 4, 4, 0.92);
+      border: 3px solid #4a1111;
+      border-radius: 10px;
+      padding: 25px 20px;
+      position: relative;
+      box-shadow: 
+        inset 0 0 20px #000,
+        0 5px 15px rgba(0, 0, 0, 0.8);
+      overflow: visible;
+    }
+
+    /* Time Display Readout */
+    .time-display {
+      font-size: clamp(2.5rem, 7vw, 4.8rem);
+      color: var(--glow-red);
+      text-shadow: 
+        0 0 10px var(--glow-red), 
+        0 0 20px rgba(255, 0, 0, 0.6),
+        0 0 35px var(--freddy-red);
+      font-weight: bold;
+      letter-spacing: 4px;
+      line-height: 1;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .time-unit {
+      display: inline-block;
+    }
+
+    .colon {
+      animation: colonBlink 1s infinite;
+      color: #ff4444;
+    }
+
+    @keyframes colonBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0.2; }
+    }
+
+    .ampm {
+      font-size: clamp(1rem, 2.5vw, 1.8rem);
+      color: var(--glow-green);
+      margin-left: 8px;
+      text-shadow: 0 0 10px var(--glow-green);
+    }
+
+    /* Date & Sub-info Readout */
+    .date-display {
+      font-size: clamp(0.9rem, 2.2vw, 1.3rem);
+      color: var(--glow-green);
+      margin-top: 15px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(120, 171, 82, 0.7);
+      border-top: 1px dashed rgba(120, 171, 82, 0.3);
+      padding-top: 12px;
+    }
+
+    /* Blood Dripping Details */
+    .blood-drips {
+      position: absolute;
+      bottom: -22px;
+      left: 0;
+      width: 100%;
+      height: 30px;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .drip {
+      position: absolute;
+      top: 0;
+      background: linear-gradient(180deg, #8a0303 0%, #4a0000 100%);
+      width: 8px;
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.8), 0 0 8px rgba(255,0,0,0.5);
+      animation: dripStretch 3s infinite ease-in-out alternate;
+    }
+
+    .drip::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 1px;
+      width: 6px;
+      height: 6px;
+      background: #8a0303;
+      border-radius: 50%;
+      box-shadow: 0 0 4px #ff0000;
+    }
+
+    .drip-1 { left: 12%; height: 18px; animation-delay: 0s; }
+    .drip-2 { left: 28%; height: 28px; animation-delay: 0.7s; }
+    .drip-3 { left: 45%; height: 14px; animation-delay: 1.2s; }
+    .drip-4 { left: 68%; height: 32px; animation-delay: 0.4s; }
+    .drip-5 { left: 85%; height: 22px; animation-delay: 1.8s; }
+
+    @keyframes dripStretch {
+      0% { transform: scaleY(1); }
+      100% { transform: scaleY(1.3); }
+    }
+
+    /* Control Panel Toolbar */
+    .controls {
+      margin-top: 25px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: #1a0808;
+      color: #c2cfb8;
+      border: 2px solid #541919;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.6);
+    }
+
+    .btn:hover {
+      background: #380d0d;
+      color: #fff;
+      border-color: var(--glow-red);
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Slash Trigger Visual Flickering Class */
+    .slashed-shake {
+      animation: violentShake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes violentShake {
+      10%, 90% { transform: translate3d(-2px, 1px, 0) rotate(-0.5deg); }
+      20%, 80% { transform: translate3d(3px, -2px, 0) rotate(1deg); }
+      30%, 50%, 70% { transform: translate3d(-5px, 3px, 0) rotate(-1.5deg); filter: hue-rotate(90deg) brightness(1.4); }
+      40%, 60% { transform: translate3d(5px, -3px, 0) rotate(1.5deg); }
+    }
+
+    /* Sub-text quote */
+    .quote-footer {
+      margin-top: 15px;
+      font-size: 0.75rem;
+      color: #6e7d61;
+      letter-spacing: 2px;
+      font-style: italic;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    /* Responsiveness adjustments */
+    @media (max-width: 480px) {
+      .clock-container {
+        padding: 25px 20px 35px 20px;
+      }
+      .digital-frame {
+        padding: 15px 10px;
+      }
+      .controls {
+        gap: 8px;
+      }
+      .btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background overlay & ambient effects -->
+  <div class="bg-overlay"></div>
+  <div class="scanlines"></div>
+  <div class="flicker-overlay"></div>
+
+  <!-- Slash Canvas for interactive glove cut effects -->
+  <canvas id="slash-canvas"></canvas>
+
+  <!-- Freddy Krueger Theme Clock Container -->
+  <div class="clock-container" id="clock-box" title="Click to trigger Freddy's blade slash!">
+    <div class="slash-mark"></div>
+    <div class="slash-mark-2"></div>
+
+    <h1 class="horror-title">Never Sleep Again</h1>
+
+    <div class="digital-frame" id="digital-frame">
+      <!-- Digital Clock Display -->
+      <div class="time-display">
+        <span class="time-unit" id="hours">00</span>
+        <span class="colon">:</span>
+        <span class="time-unit" id="minutes">00</span>
+        <span class="colon">:</span>
+        <span class="time-unit" id="seconds">00</span>
+        <span class="ampm" id="ampm-unit">AM</span>
+      </div>
+
+      <!-- Date Display -->
+      <div class="date-display" id="date-display">
+        FRI, OCT 13, 1984
+      </div>
+
+      <!-- Blood Drips originating from bottom frame -->
+      <div class="blood-drips">
+        <div class="drip drip-1"></div>
+        <div class="drip drip-2"></div>
+        <div class="drip drip-3"></div>
+        <div class="drip drip-4"></div>
+        <div class="drip drip-5"></div>
+      </div>
+    </div>
+
+    <!-- Interactive Control Panel -->
+    <div class="controls" onclick="event.stopPropagation();">
+      <button class="btn" id="toggle-format-btn">
+        <i class="fa-solid fa-clock"></i> <span id="format-label">12-HOUR</span>
+      </button>
+      <button class="btn" id="slash-btn">
+        <i class="fa-solid fa-hand-back-fist"></i> SLASH CLOCK
+      </button>
+      <button class="btn" id="sound-toggle-btn">
+        <i class="fa-solid fa-volume-high" id="sound-icon"></i> SFX: ON
+      </button>
+    </div>
+
+    <div class="quote-footer">
+      "1, 2, Freddy's coming for you..."
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function() {
+      // Configuration & State
+      let is24HourMode = false;
+      let soundEnabled = true;
+
+      <!-- Web Audio API Synthesizer for Blade Slash & Nightmare SFX -->
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      let audioCtx = null;
+
+      function initAudio() {
+        if (!audioCtx) {
+          audioCtx = new AudioCtx();
+        }
+      }
+
+      // Synthesize a metallic blade slash sound effect
+      function playSlashSFX() {
+        if (!soundEnabled) return;
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+
+        // White noise buffer for blade metallic screech
+        const bufferSize = audioCtx.sampleRate * 0.25;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        // Highpass filter for razor sharpness
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(1200, now);
+        filter.frequency.exponentialRampToValueAtTime(4500, now + 0.2);
+
+        // Gain envelope
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start(now);
+        noise.stop(now + 0.25);
+      }
+
+      // Synthesize a eerie tick pulse sound
+      function playTickSFX() {
+        if (!soundEnabled) return;
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.05);
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+
+      // HTML Canvas Setup for Dynamic Interactive Slash Graphic
+      const canvas = document.getElementById('slash-canvas');
+      const ctx = canvas.getContext('2d');
+      let slashes = [];
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      $(window).on('resize', resizeCanvas);
+
+      class BladeSlash {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.life = 1.0;
+          this.angle = (Math.PI / 4) + (Math.random() * 0.4 - 0.2);
+          this.length = 220 + Math.random() * 120;
+          this.blades = 4; // Freddy's 4 razor claws
+          this.spacing = 16;
+        }
+
+        draw(context) {
+          context.save();
+          context.translate(this.x, this.y);
+          context.rotate(this.angle);
+
+          for (let i = 0; i < this.blades; i++) {
+            const offsetY = (i - (this.blades - 1) / 2) * this.spacing;
+            
+            context.beginPath();
+            context.moveTo(-this.length / 2, offsetY);
+            context.lineTo(this.length / 2, offsetY);
+
+            // Glow / Metallic sheen
+            context.lineWidth = 3;
+            context.strokeStyle = `rgba(255, 50, 50, ${this.life * 0.9})`;
+            context.shadowColor = '#ff0000';
+            context.shadowBlur = 12;
+            context.stroke();
+
+            // Bright core
+            context.beginPath();
+            context.moveTo(-this.length / 2 + 10, offsetY);
+            context.lineTo(this.length / 2 - 10, offsetY);
+            context.lineWidth = 1.5;
+            context.strokeStyle = `rgba(255, 255, 255, ${this.life})`;
+            context.stroke();
+          }
+          context.restore();
+        }
+
+        update() {
+          this.life -= 0.035;
+        }
+      }
+
+      function animateSlashes() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = slashes.length - 1; i >= 0; i--) {
+          slashes[i].draw(ctx);
+          slashes[i].update();
+          if (slashes[i].life <= 0) {
+            slashes.splice(i, 1);
+          }
+        }
+        requestAnimationFrame(animateSlashes);
+      }
+      animateSlashes();
+
+      // Trigger Visual & Audio Slash Effect
+      function triggerSlashEffect(e) {
+        let posX, posY;
+        const boxOffset = $('#clock-box').offset();
+        
+        if (e && e.pageX) {
+          posX = e.pageX;
+          posY = e.pageY;
+        } else {
+          posX = boxOffset.left + $('#clock-box').width() / 2;
+          posY = boxOffset.top + $('#clock-box').height() / 2;
+        }
+
+        slashes.push(new BladeSlash(posX, posY));
+        playSlashSFX();
+
+        // Shake & Red Flicker on clock box
+        $('#clock-box').addClass('slashed-shake');
+        $('#digital-frame').css('background-color', 'rgba(120, 10, 10, 0.9)');
+        
+        setTimeout(() => {
+          $('#clock-box').removeClass('slashed-shake');
+          $('#digital-frame').css('background-color', 'rgba(8, 4, 4, 0.92)');
+        }, 350);
+      }
+
+      // Smooth jQuery Time Update Logic
+      function updateClock() {
+        const now = new Date();
+
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        let ampm = '';
+
+        if (!is24HourMode) {
+          ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12; // convert 0 to 12
+        } else {
+          ampm = '24H';
+        }
+
+        const formattedHours = String(hours).padStart(2, '0');
+
+        // Update DOM elements using jQuery with micro fade tick pulse
+        $('#hours').text(formattedHours);
+        $('#minutes').text(minutes);
+        $('#seconds').text(seconds);
+        $('#ampm-unit').text(ampm);
+
+        // Subtle flicker pulse on second change
+        $('#seconds').css('opacity', '0.7');
+        setTimeout(() => $('#seconds').css('opacity', '1'), 100);
+
+        // Date String formatting
+        const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+        const dateString = now.toLocaleDateString('en-US', options).toUpperCase();
+        $('#date-display').text(dateString);
+
+        // Play tick sound on every second
+        playTickSFX();
+      }
+
+      // Initialize Clock & Set 1-second interval
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Event Listeners
+      $('#clock-box').on('click', function(e) {
+        triggerSlashEffect(e);
+      });
+
+      $('#slash-btn').on('click', function(e) {
+        e.stopPropagation();
+        triggerSlashEffect();
+      });
+
+      $('#toggle-format-btn').on('click', function(e) {
+        e.stopPropagation();
+        initAudio();
+        is24HourMode = !is24HourMode;
+        $('#format-label').text(is24HourMode ? '24-HOUR' : '12-HOUR');
+        updateClock();
+      });
+
+      $('#sound-toggle-btn').on('click', function(e) {
+        e.stopPropagation();
+        soundEnabled = !soundEnabled;
+        if (soundEnabled) {
+          initAudio();
+          $('#sound-icon').attr('class', 'fa-solid fa-volume-high');
+          $('#sound-toggle-btn').html('<i class="fa-solid fa-volume-high"></i> SFX: ON');
+        } else {
+          $('#sound-toggle-btn').html('<i class="fa-solid fa-volume-xmark"></i> SFX: OFF');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
